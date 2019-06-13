@@ -1,6 +1,8 @@
 const container = document.getElementById('map');
 const input = document.getElementById('urlinput');
 
+const links = {};
+
 const nodes = new vis.DataSet([]);
 const edges = new vis.DataSet([]);
 
@@ -53,7 +55,7 @@ async function parsePage(pageName) {
 }
 
 async function processLinks(pageName) {
-  linksToProcess = links[pageName].splice(0, 50);
+  const linksToProcess = links[pageName].splice(0, 50);
 
   nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
 
@@ -111,6 +113,3 @@ async function getLinks(pageName) {
 
   return data.parse;
 }
-
-
-const links = {};
