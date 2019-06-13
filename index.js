@@ -1,17 +1,14 @@
-  // create an array with nodes
-  var nodes = new vis.DataSet([]);
+const container = document.getElementById('map');
+const input = document.getElementById('urlinput');
 
-  // create an array with edges
-  var edges = new vis.DataSet([]);
+const nodes = new vis.DataSet([]);
+const edges = new vis.DataSet([]);
 
-  // create a network
-  var container = document.getElementById('map');
-  var input = document.getElementById('urlinput');
-  var data = {
-    nodes: nodes,
-    edges: edges
-  };
-var options = {
+const data = {
+  nodes: nodes,
+  edges: edges
+};
+const options = {
   /*
   "edges": {
     "smooth": false
@@ -22,7 +19,7 @@ var options = {
   */
 }
 
-var network = new vis.Network(container, data, options);
+const network = new vis.Network(container, data, options);
 
 network.on("doubleClick", (e) => {
   console.log("doubleClick", e)
@@ -49,36 +46,21 @@ input.addEventListener("keydown", e => {
 })
 
 async function parsePage(pageName) {
-  if (!links[pageName]) {
-    nodes.add({id: pageName, label: pageName});
-
-    const data = await getLinks(pageName);
-    if (data.redirects && data.redirects[0] && data.redirects[0].from === pageName) {
-      const newPageName = String(data.redirects[0].from);
-      if (nodes._data[pageName]) {
-        //todo update node & remove one if needed & update edges
-      }
-
-      pageName = newPageName;
-    }
-
-    links[pageName] = data.links;
-  }
+  if (!links[pageName])
+    await checkRedirectAndFetchLinksAndShowCount(pageName);
 
   processLinks(pageName);
 }
 
 async function processLinks(pageName) {
-  console.log("processLinks", pageName, links[pageName].length)
   linksToProcess = links[pageName].splice(0, 50);
-  console.log("processLinks", pageName, links[pageName].length)
 
   nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
 
   linksToProcess.forEach(link => {
     link = String(link["*"]);
 
-    if (!link.startsWith('Wikipedia:') && !link.startsWith('Talk:') && link != pageName) {
+    if (!link.startsWith('Wikipedia:') && !link.startsWith('Talk:') !link.startsWith('File:') && link != pageName) {
       try {
         //console.log("adding node", link)
         nodes.add({id: link, label: link});
@@ -123,15 +105,9 @@ async function checkRedirectAndFetchLinksAndShowCount(pageName) {
   nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
 }
 
-async function addPage(pageName, origin) {
-
-}
-
 async function getLinks(pageName) {
   const response = await fetch("https://en.wikipedia.org/w/api.php?action=parse&redirects&prop=links&format=json&origin=*&page=" + encodeURIComponent(pageName));
   const data = await response.json();
-  //const parsed = parseWikiApiData(data);
-  //console.log("getLinks", data);
 
   return data.parse;
 }
