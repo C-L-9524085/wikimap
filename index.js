@@ -62,7 +62,7 @@ async function processLinks(pageName) {
   linksToProcess.forEach(link => {
     link = String(link["*"]);
 
-    if (!link.startsWith('Wikipedia:') && !link.startsWith('Talk:') !link.startsWith('File:') && link != pageName) {
+    if (!link.startsWith('Wikipedia:') && !link.startsWith('Talk:') && !link.startsWith('File:') && link != pageName) {
       try {
         //console.log("adding node", link)
         nodes.add({id: link, label: link});
