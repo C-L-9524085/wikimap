@@ -48,10 +48,11 @@ input.addEventListener("keydown", e => {
 })
 
 async function parsePage(pageName) {
+  pageName = capitalizeFirstLetter(pageName);
   if (!links[pageName])
     await checkRedirectAndFetchLinksAndShowCount(pageName);
 
-  processLinks(pageName);
+  //processLinks(pageName);
 }
 
 async function processLinks(pageName) {
@@ -60,37 +61,46 @@ async function processLinks(pageName) {
   nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
 
   linksToProcess.forEach(link => {
-    link = String(link["*"]);
-
-    if (!link.startsWith('Wikipedia:') && !link.startsWith('Talk:') && !link.startsWith('File:') && link != pageName) {
-      try {
-        //console.log("adding node", link)
-        nodes.add({id: link, label: link});
-        checkRedirectAndFetchLinksAndShowCount(link);
-      } catch(e) {
-        console.error("couldn't add node", link, e)
-      }
-      try {
-        //console.log("adding edge", pageName, link)
-        edges.add({
-          id: pageName + "_" + link,
-          from: pageName,
-          to: link
-        });
-      } catch(e) {
-        console.error("couldn't add edge", e)
-      }
-    }
+    addNodeAndLink(link, pageName)
   });
+}
+
+function addNodeAndLink(link, pageName) {
+  if (!link.startsWith('Wikipedia:') && !link.startsWith('Talk:') && !link.startsWith('File:') && link != pageName) {
+    try {
+      //console.log("adding node", link)
+      nodes.add({id: link, label: link});
+      checkRedirectAndFetchLinksAndShowCount(link);
+    } catch(e) {
+      console.error("couldn't add node", link, e)
+    }
+    try {
+      //console.log("adding edge", pageName, link)
+      edges.add({
+        id: pageName + "_" + link,
+        from: pageName,
+        to: link
+      });
+    } catch(e) {
+      console.error("couldn't add edge", e)
+    }
+  }
+}
+
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 async function checkRedirectAndFetchLinksAndShowCount(pageName) {
   const data = await getLinks(pageName);
+  console.log(data);
 
-  if (data.redirects && data.redirects.length && pageName === data.redirects[0].from) {
-    const newPageName = data.redirects[0].from;
+  //console.log("redirect", pageName, data.redirects);
+  if (data.redirects && data.redirects[0] && pageName.toLowerCase() === data.redirects[0].from.toLowerCase()) {
+    const newPageName = data.redirects[0].to;
+    //console.log("redirect", pageName, newPageName);
     if (nodes._data[pageName]) {
-      //todo remove old node and reroute edges
+      //todo remove old node and reroute edges(?)
 
       if (links[pageName]) {
         links[newPageName] = links[pageName];
@@ -101,9 +111,31 @@ async function checkRedirectAndFetchLinksAndShowCount(pageName) {
     pageName = newPageName;
   }
 
-  if (!links[pageName])
-    links[pageName] = data.links;
-  
+  if (!links[pageName]) {
+    //todo: keep track of redirects and check if a link here is redirected(? do I need this?)
+    links[pageName] = data.links.map(e => e = String(e["*"]));
+  }
+
+  links[pageName].forEach((link, i) => {
+    if (nodes._data[link]) {
+      addNodeAndLink(pageName, link);
+      links[pageName].splice(i, 1);
+    }
+  })
+
+  console.log("checking other nodes to see if they have", pageName, "in their links")
+  Object.keys(nodes._data).forEach((nodeName) => {
+    console.log("checking if", nodeName, "has", pageName, "should link:", links[nodeName].includes(pageName));
+    if (links[nodeName].includes(pageName)) {
+      addNodeAndLink(nodeName, pageName);
+
+      links[nodeName].splice(links[nodeName].indexOf(pageName), 1);
+      nodes.update({id: nodeName, label: nodeName + ' (' + links[nodeName].length + ')'})
+    }
+  })
+
+  //todo: also search for links in common (ipod & zero-configuration networking => apple inc)
+
   nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
 }
 
@@ -113,3 +145,5 @@ async function getLinks(pageName) {
 
   return data.parse;
 }
+
+//right-click menu to show links, pick from it
