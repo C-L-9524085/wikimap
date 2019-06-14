@@ -79,7 +79,8 @@ function addNodeAndLink(link, pageName) {
       edges.add({
         id: pageName + "_" + link,
         from: pageName,
-        to: link
+        to: link,
+        arrows: 'to'
       });
     } catch(e) {
       console.error("couldn't add edge", e)
