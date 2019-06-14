@@ -80,16 +80,24 @@ function addNode(nodeName) {
 
 function addEdge(from, to) {
   if (from != to) {
-    try {
-      //console.log("adding edge", from, to)
-      edges.add({
-        id: from + "_" + to,
-        from: from,
-        to: to,
-        arrows: 'to'
-      });
-    } catch(e) {
-      console.error("couldn't add edge", e)
+    //todo sort to & from alphabetically for the Id
+    if (edges._data[from + '_' + to]) {
+      edges.update({id: from + '_' + to, arrows: 'to, from'})
+    }
+    else if (edges._data[to + '_' + from]) {
+      edges.update({id: to + '_' + from, arrows: 'to, from'})
+    } else {
+      try {
+        //console.log("adding edge", from, to)
+        edges.add({
+          id: from + "_" + to,
+          from: from,
+          to: to,
+          arrows: 'to'
+        });
+      } catch(e) {
+        console.error("couldn't add edge", e)
+      }
     }
   }
 }
@@ -193,23 +201,11 @@ function updateRedirects(oldName, newName) {
   Object.keys(edges._data).forEach(edge => {
     edge = edges._data[edge];
     if (edge.to === oldName) {
-      edges.add({
-        id: edge.from + '_' + newName,
-        from: edge.from,
-        to: newName,
-        arrows: "to"
-      });
-
+      addEdge(edge.from, newName);
       edges.remove({id: edge.id });
     }
     else if (edge.from === oldName) {
-      edges.add({
-        id: newName + "_" + edge.to,
-        from: newName,
-        to: edge.to,
-        arrows: "to"
-      });
-
+      addEdge(newName, edge.to);
       edges.remove({id: edge.id });
     }
   })
