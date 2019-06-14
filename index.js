@@ -2,6 +2,7 @@ const container = document.getElementById('map');
 const input = document.getElementById('urlinput');
 
 const links = {};
+const redirects = {};
 
 const nodes = new vis.DataSet([]);
 const edges = new vis.DataSet([]);
@@ -49,8 +50,9 @@ input.addEventListener("keydown", e => {
 
 async function parsePage(pageName) {
   pageName = capitalizeFirstLetter(pageName);
-  if (!links[pageName])
-    await checkRedirectAndFetchLinksAndShowCount(pageName);
+  if (!links[pageName]) {
+    addNode(pageName);
+  }
 
   //processLinks(pageName);
 }
@@ -61,25 +63,29 @@ async function processLinks(pageName) {
   nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
 
   linksToProcess.forEach(link => {
-    addNodeAndLink(link, pageName)
+    addNode(link);
+    addLink(link, pageName);
   });
 }
 
-function addNodeAndLink(link, pageName) {
-  if (!link.startsWith('Wikipedia:') && !link.startsWith('Talk:') && !link.startsWith('File:') && link != pageName) {
+function addNode(nodeName) {
+  try {
+    //console.log("adding node", link)
+    nodes.add({id: nodeName, label: nodeName});
+    checkRedirectAndFetchLinksAndShowCount(nodeName);
+  } catch(e) {
+    console.error("couldn't add node", nodeName, e)
+  }
+}
+
+function addLink(from, to) {
+  if (from != to) {
     try {
-      //console.log("adding node", link)
-      nodes.add({id: link, label: link});
-      checkRedirectAndFetchLinksAndShowCount(link);
-    } catch(e) {
-      console.error("couldn't add node", link, e)
-    }
-    try {
-      //console.log("adding edge", pageName, link)
+      //console.log("adding edge", from, to)
       edges.add({
-        id: pageName + "_" + link,
-        from: pageName,
-        to: link,
+        id: from + "_" + to,
+        from: from,
+        to: to,
         arrows: 'to'
       });
     } catch(e) {
@@ -94,41 +100,53 @@ function capitalizeFirstLetter(string) {
 
 async function checkRedirectAndFetchLinksAndShowCount(pageName) {
   const data = await getLinks(pageName);
-  console.log(data);
+  //console.log(data);
 
   //console.log("redirect", pageName, data.redirects);
-  if (data.redirects && data.redirects[0] && pageName.toLowerCase() === data.redirects[0].from.toLowerCase()) {
-    const newPageName = data.redirects[0].to;
+  if (pageName !== data.title) {
+    const newPageName = data.title;
     //console.log("redirect", pageName, newPageName);
     if (nodes._data[pageName]) {
-      //todo remove old node and reroute edges(?)
-
       if (links[pageName]) {
         links[newPageName] = links[pageName];
         delete links[pageName];
       }
+
+      updateRedirects(pageName, newPageName);
     }
 
-    pageName = newPageName;
+    pageName = data.title;
+  }
+
+
+  const redirectData = await getRedirects(pageName);
+  if (redirectData && redirectData.length > 0) {
+    redirectData.forEach(redirect => {
+      redirects[redirect.title] = pageName;
+      updateRedirects(redirect.title, pageName);
+    })
   }
 
   if (!links[pageName]) {
-    //todo: keep track of redirects and check if a link here is redirected(? do I need this?)
-    links[pageName] = data.links.map(e => e = String(e["*"]));
+    links[pageName] = data.links.map(e => e = String(e["*"])).map(e => redirects[e] || e);
   }
 
+
+  //link to already-existing linked nodes
   links[pageName].forEach((link, i) => {
     if (nodes._data[link]) {
-      addNodeAndLink(pageName, link);
+      addLink(pageName, link);
       links[pageName].splice(i, 1);
     }
   })
 
-  console.log("checking other nodes to see if they have", pageName, "in their links")
+  nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
+
+  //check already-existing nodes to see if they link to our node
   Object.keys(nodes._data).forEach((nodeName) => {
-    console.log("checking if", nodeName, "has", pageName, "should link:", links[nodeName].includes(pageName));
-    if (links[nodeName].includes(pageName)) {
-      addNodeAndLink(nodeName, pageName);
+    //console.log("checking if", nodeName, "has", pageName, "should link:", links[nodeName], links[nodeName] && links[nodeName].includes(pageName));
+    if (links[nodeName] && links[nodeName].includes(pageName)) {
+      addLink(nodeName, pageName);
 
       links[nodeName].splice(links[nodeName].indexOf(pageName), 1);
       nodes.update({id: nodeName, label: nodeName + ' (' + links[nodeName].length + ')'})
@@ -136,8 +154,6 @@ async function checkRedirectAndFetchLinksAndShowCount(pageName) {
   })
 
   //todo: also search for links in common (ipod & zero-configuration networking => apple inc)
-
-  nodes.update({id: pageName, label: pageName + ' (' + links[pageName].length + ')'})
 }
 
 async function getLinks(pageName) {
@@ -145,6 +161,69 @@ async function getLinks(pageName) {
   const data = await response.json();
 
   return data.parse;
+}
+
+async function getRedirects(pageName) {
+  const response = await fetch("https://en.wikipedia.org/w/api.php?action=query&prop=redirects&format=json&origin=*&rdlimit=max&titles=" + encodeURIComponent(pageName));
+  const data = await response.json();
+
+  //not handling rdcontinue because it's likely to fit in 500
+  //console.log("redir", data);
+  for (let pageId in data.query.pages) {
+    const page = data.query.pages[pageId];
+    if (page.title === pageName) {
+      return page.redirects;
+    }
+  }
+}
+
+function updateRedirects(oldName, newName) {
+  //console.log("updateRedirects", oldName, newName)
+  //update node with oldName
+  if (nodes._data[oldName]) {
+    if (links[newName]) {
+      links[oldName] = links[newName];
+      delete links[oldName];
+    }
+
+    nodes.remove({id: oldName});
+  }
+
+  //update edges to old name
+  Object.keys(edges._data).forEach(edge => {
+    edge = edges._data[edge];
+    if (edge.to === oldName) {
+      edges.add({
+        id: edge.from + '_' + newName,
+        from: edge.from,
+        to: newName,
+        arrows: "to"
+      });
+
+      edges.remove({id: edge.id });
+    }
+    else if (edge.from === oldName) {
+      edges.add({
+        id: newName + "_" + edge.to,
+        from: newName,
+        to: edge.to,
+        arrows: "to"
+      });
+
+      edges.remove({id: edge.id });
+    }
+  })
+
+  //update stored links
+  for (let linkName in links) {
+    const link = links[linkName];
+    //console.log("updating links of", linkName);
+
+    if (link.includes(oldName)) {
+      //console.log("linkName had old", oldName, "replacing with", newName)
+      link.splice(link.indexOf(oldName), 1, newName)
+    }
+  }
 }
 
 //right-click menu to show links, pick from it
