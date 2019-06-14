@@ -64,7 +64,7 @@ async function processLinks(pageName) {
 
   linksToProcess.forEach(link => {
     addNode(link);
-    addLink(link, pageName);
+    addEdge(link, pageName);
   });
 }
 
@@ -78,7 +78,7 @@ function addNode(nodeName) {
   }
 }
 
-function addLink(from, to) {
+function addEdge(from, to) {
   if (from != to) {
     try {
       //console.log("adding edge", from, to)
@@ -135,7 +135,7 @@ async function checkRedirectAndFetchLinksAndShowCount(pageName) {
   //link to already-existing linked nodes
   links[pageName].forEach((link, i) => {
     if (nodes._data[link]) {
-      addLink(pageName, link);
+      addEdge(pageName, link);
       links[pageName].splice(i, 1);
     }
   })
@@ -146,7 +146,7 @@ async function checkRedirectAndFetchLinksAndShowCount(pageName) {
   Object.keys(nodes._data).forEach((nodeName) => {
     //console.log("checking if", nodeName, "has", pageName, "should link:", links[nodeName], links[nodeName] && links[nodeName].includes(pageName));
     if (links[nodeName] && links[nodeName].includes(pageName)) {
-      addLink(nodeName, pageName);
+      addEdge(nodeName, pageName);
 
       links[nodeName].splice(links[nodeName].indexOf(pageName), 1);
       nodes.update({id: nodeName, label: nodeName + ' (' + links[nodeName].length + ')'})
