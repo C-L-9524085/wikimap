@@ -1,12 +1,72 @@
 <!DOCTYPE html> 
 <html> 
-<head> 
+<head>
+	<style>
+		#linksList {
+			max-height: 80%;
+			overflow-y: scroll;
+			z-index: 3;
+			opacity: 0.8;
+
+			top: 20%;
+			left: 50%;
+			-webkit-transform: translateX(-50%) translateY(-20%);
+			-moz-transform: translateX(-50%) translateY(-20%);
+			-ms-transform: translateX(-50%) translateY(-20%);
+			transform: translateX(-50%) translateY(-20%);
+		}
+		#closeButton {
+			color: red;
+			text-align: right;
+			cursor: pointer;
+		}
+
+		.link {
+			transition: 0.3s;
+			cursor: pointer;
+		}
+
+		.link:hover {
+			background-color: blue;			
+		}
+
+		#map {
+			background-color: cyan;
+		}
+
+		.noselect {
+			  -webkit-touch-callout: none; /* iOS Safari */
+			    -webkit-user-select: none; /* Safari */
+			     -khtml-user-select: none; /* Konqueror HTML */
+			       -moz-user-select: none; /* Firefox */
+			        -ms-user-select: none; /* Internet Explorer/Edge */
+			            user-select: none; /* Non-prefixed version, currently
+			                                  supported by Chrome and Opera */
+		}
+
+		.lineIndicator {
+			opacity: 0.5;
+			float:right;
+		}
+	</style>
     <meta charset="UTF-8">
     <title>Wiki mindmap</title> 
 
 	<script src="node_modules/vis/dist/vis-network.min.js"></script>
+	<script src="node_modules/vue/dist/vue.min.js"></script>
 </head>
 <body>
+	<dialog closed id="linksList">
+		<b>Links</b>
+		<span id="closeButton" v-on:click="toggleDialogVisibility">x</span>
+		<div><input type="textinput" placeholder="search link in article (TODO)"> </input></div>
+		<ul>
+			<li v-for="(link, index) of linkList" v-on:click="parsePage(link); linkList = linkList.filter(e => e !== link)" class="link noselect">
+				{{ link }}
+				<span class="lineIndicator">{{ index }}</class>
+			</li>
+		</ul>
+	</dialog>
 	<div id="map" style="width: 90vw; height: 90vh;"></div>
 	<input id="urlinput" type="textinput" style="width: 90%"></input>
 	<script src="index.js"></script>

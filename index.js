@@ -1,10 +1,15 @@
 const container = document.getElementById('map');
 const input = document.getElementById('urlinput');
 
-const links = {};
+window.focus(container);
+
+//const links = {};
+const links = JSON.parse("{\"Zero-configuration networking\":[\"Category:Articles needing cleanup from December 2010\",\"Category:Cleanup tagged articles without a reason field from December 2010\",\"Category:Wikipedia categories needing cleanup from December 2010\",\"Category:Wikipedia pages needing cleanup from December 2010\",\"Category:Articles with self-published sources from May 2013\",\"Category:Articles with unsourced statements from May 2013\",\"Category:Articles with unsourced statements from February 2016\",\"Category:Articles with unsourced statements from May 2015\",\"Category:Application layer protocols\",\"Category:Internet layer protocols\",\"Category:Link protocols\",\"Category:Transport layer protocols\",\"Template:IPstack\",\"Template:Cleanup/doc\",\".local\",\"APIPA\",\"Address Resolution Protocol\",\"Address autoconfiguration\",\"AllJoyn\",\"Android Jelly Bean\",\"Apache License\",\"AppleTalk\",\"Apple Inc.\",\"Application layer\",\"Arthur van Hoff\",\"Australia\",\"Avahi (software)\",\"BSD\",\"Berkeley Software Distribution\",\"Bonjour (software)\",\"Bonjour Sleep Proxy\",\"Border Gateway Protocol\",\"Broadband\",\"BusyBox\",\"CNAME record\",\"C (programming language)\",\"Cable modem\",\"Chooser (Mac OS)\",\"Computer Browser Service\",\"Computer network\",\"Computer printer\",\"DHCP\",\"DHCP server\",\"Darwin (operating system)\",\"Datagram Congestion Control Protocol\",\"Debian\",\"Devices Profile for Web Services\",\"Digital Living Network Alliance\",\"Digital object identifier\",\"Digital subscriber line\",\"Directory service\",\"Domain Name System\",\"Dynamic Host Configuration Protocol\",\"Ethernet\",\"Explicit Congestion Notification\",\"Fiber Distributed Data Interface\",\"File Transfer Protocol\",\"Germany\",\"HTTPS\",\"Hewlett-Packard\",\"Home theater PC\",\"Hostname\",\"Hypertext Transfer Protocol\",\"IChat\",\"IEEE\",\"IETF\",\"IP address\",\"IPsec\",\"IPv4\",\"IPv4LL\",\"IPv6\",\"Integrated Services Digital Network\",\"Internet Control Message Protocol\",\"Internet Control Message Protocol for IPv6\",\"Internet Engineering Task Force\",\"Internet Group Management Protocol\",\"Internet Message Access Protocol\",\"Internet Protocol\",\"Internet Protocol Suite\",\"Internet layer\",\"Internet protocol suite\",\"Internet service provider\",\"Java (programming language)\",\"LLMNR\",\"Layer 2 Tunneling Protocol\",\"Lightweight Directory Access Protocol\",\"Link-local Multicast Name Resolution\",\"Link-local address\",\"Link layer\",\"Linux\",\"List of DNS record types\",\"Local area network\",\"MAC address\",\"MQTT\",\"Mac OS X 10.1\",\"Mac OS X 10.2\",\"Macintosh\",\"Media Gateway Control Protocol\",\"Medium access control\",\"Messages (Apple)\",\"Microsoft\",\"Multicast DNS\",\"Name Binding Protocol\",\"Name service\",\"Namespace\",\"Neighbor Discovery Protocol\",\"NetBIOS\",\"NetBIOS Name Service\",\"NetBSD\",\"Netherlands\",\"Network News Transfer Protocol\",\"Network Time Protocol\",\"Network address\",\"Network administrator\",\"Network packet\",\"Network router\",\"Network service\",\"Networking protocol\",\"Novell\",\"OS X\",\"Open Network Computing Remote Procedure Call\",\"Open Shortest Path First\",\"Opensource\",\"POSIX\",\"PTR record\",\"Packet forwarding\",\"Peer Name Resolution Protocol\",\"Plain old telephone service\",\"Point-to-Point Protocol\",\"Post Office Protocol\",\"Protocol stack\",\"Python (programming language)\",\"RSA (cryptosystem)\",\"Real-time Transport Protocol\",\"Real Time Streaming Protocol\",\"Request for Comments (identifier)\",\"Resource Reservation Protocol\",\"Resource record\",\"Routing Information Protocol\",\"SOAP\",\"SOHO network\",\"SRV record\",\"Safari (web browser)\",\"Secure Shell\",\"Server Message Block\",\"Service Location Protocol\",\"Service discovery\",\"Session Initiation Protocol\",\"Simple Mail Transfer Protocol\",\"Simple Network Management Protocol\",\"Simple Service Discovery Protocol\",\"Solaris (operating system)\",\"Stream Control Transmission Protocol\",\"Stuart Cheshire\",\"Sun Microsystems\",\"TXT record\",\"Telnet\",\"Transmission Control Protocol\",\"Transport Layer Security\",\"Transport layer\",\"Tunneling protocol\",\"UPnP\",\"Ubuntu (operating system)\",\"Uniform Resource Identifier\",\"Unix\",\"User Datagram Protocol\",\"VoIP\",\"WS-Discovery\",\"Web Services for Devices\",\"Wi-Fi\",\"Wide area network\",\"Windows 98\",\"Windows CE\",\"Windows Internet Name Service\",\"Windows XP\",\"Wireless Zero Configuration\",\"XMPP\",\"DNS service discovery\",\"Wikipedia:Citation needed\",\"Wikipedia:Cleanup\",\"Wikipedia:Manual of Style\",\"Wikipedia:Verifiability\",\"Template talk:IPstack\",\"Help:Maintenance template removal\"]}");
 const redirects = {};
 
-const nodes = new vis.DataSet([]);
+var linkList = [];
+
+const nodes = new vis.DataSet([JSON.parse("{\"id\":\"Zero-configuration networking\",\"label\":\"Zero-configuration networking (184)\"}")]);
 const edges = new vis.DataSet([]);
 
 const data = {
@@ -38,8 +43,28 @@ network.on("selectNode", (e) => {
 network.on("oncontext", (e) => {
   console.log("oncontext", e)
   e.event.preventDefault();
-  parsePage(e.nodes[0])
+
+  const targetPageName = network.getNodeAt(e.pointer.DOM);
+  //processLinks(e.nodes[0])
+
+  buildLinkList(targetPageName);
+  toggleDialogVisibility("linksList");
 });
+
+function buildLinkList(pageName) {
+  //this'll show duplicates for redirects we haven't checked yet...
+  
+  //not sure how the observer will react if I just replace the array so ohwell
+  while (linkList.length > 0) {
+    linkList.pop();
+  }
+
+  for (let link of links[pageName]) {
+    linkList.push(link);
+  }
+
+  linkList.sort()
+}
 
 input.addEventListener("keydown", e => {
   if (e.key === "Enter") {
@@ -70,7 +95,7 @@ async function processLinks(pageName) {
 
 function addNode(nodeName) {
   try {
-    //console.log("adding node", link)
+    console.log("adding node", nodeName)
     nodes.add({id: nodeName, label: nodeName});
     checkRedirectAndFetchLinksAndShowCount(nodeName);
   } catch(e) {
@@ -108,7 +133,7 @@ function capitalizeFirstLetter(string) {
 
 async function checkRedirectAndFetchLinksAndShowCount(pageName) {
   const data = await getLinks(pageName);
-  //console.log(data);
+  console.log(data);
 
   //console.log("redirect", pageName, data.redirects);
   if (pageName !== data.title) {
@@ -223,3 +248,23 @@ function updateRedirects(oldName, newName) {
 }
 
 //right-click menu to show links, pick from it
+//list import
+//show nodes in red when no getting no data
+
+function toggleDialogVisibility() {
+  const elem = document.getElementById("linksList");
+
+  elem.style.display = elem.style.display === "none" ? "block" : "none";
+}
+
+const vue = new Vue({
+  el: '#linksList',
+  data: { linkList },
+  methods: {
+    toggleDialogVisibility
+  }
+})
+
+// https://css-tricks.com/creating-vue-js-component-instances-programmatically/
+// https://stackoverflow.com/questions/50150668/how-to-create-vue-js-slot-programatically
+// https://stackoverflow.com/questions/45151810/passing-props-with-programmatic-navigation-vue-js
