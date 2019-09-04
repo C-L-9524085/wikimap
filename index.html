@@ -2,23 +2,50 @@
 <html> 
 <head>
 	<style>
+		body {
+			overflow-y: hidden;
+			margin: 0;
+			display:flex;
+		}
+		#container-map {
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+		}
+		#container-info {
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+			width: 40vh;
+			background-color: red;
+		}
+		#articleSummary {
+			background-color: orange;
+			font-size: 12px;
+			max-height: 100px;
+			overflow: auto;
+		}
 		#linksList {
-			max-height: 80%;
+			background-color: pink;
 			overflow-y: scroll;
-			z-index: 3;
-			opacity: 0.8;
-
-			top: 20%;
-			left: 50%;
-			-webkit-transform: translateX(-50%) translateY(-20%);
-			-moz-transform: translateX(-50%) translateY(-20%);
-			-ms-transform: translateX(-50%) translateY(-20%);
-			transform: translateX(-50%) translateY(-20%);
+			max-height: 95vh;
+			height: 100%;
+			font-size: 12px;
+		}
+		ul {
+			padding-left: 15px;
+		}
+		li {
+			margin-bottom: 1px;
+			background-color: purple;
 		}
 		#closeButton {
 			color: red;
 			text-align: right;
 			cursor: pointer;
+		}
+		#linkSearch {
+
 		}
 
 		.link {
@@ -30,8 +57,13 @@
 			background-color: blue;			
 		}
 
+		#urlinput {
+		}
+
 		#map {
 			background-color: cyan;
+			flex-shrink: 0;
+			height: 100vh;			
 		}
 
 		.noselect {
@@ -43,32 +75,28 @@
 			            user-select: none; /* Non-prefixed version, currently
 			                                  supported by Chrome and Opera */
 		}
-
-		.lineIndicator {
-			opacity: 0.5;
-			float:right;
-		}
 	</style>
     <meta charset="UTF-8">
     <title>Wiki mindmap</title> 
 
 	<script src="node_modules/vis/dist/vis-network.min.js"></script>
-	<script src="node_modules/vue/dist/vue.min.js"></script>
+	<script src="node_modules/vue/dist/vue.js"></script>
 </head>
 <body>
-	<dialog closed id="linksList">
-		<b>Links</b>
-		<span id="closeButton" v-on:click="toggleDialogVisibility">x</span>
-		<div><input type="textinput" placeholder="search link in article (TODO)"> </input></div>
-		<ul>
-			<li v-for="(link, index) of linkList" v-on:click="parsePage(link); linkList = linkList.filter(e => e !== link)" class="link noselect">
-				{{ link }}
-				<span class="lineIndicator">{{ index }}</class>
-			</li>
-		</ul>
-	</dialog>
-	<div id="map" style="width: 90vw; height: 90vh;"></div>
-	<input id="urlinput" type="textinput" style="width: 90%"></input>
+	<div id="container-info">
+		<div id="articleSummary" v-text="articleExtract">placeholder</div>
+		<input type="text" placeholder="filter links" v-model="search" id="linkSearch"></input>
+		<div id="linksList">
+			<ul>
+				<li v-for="link of filteredList" v-on:click="addNodeIfNotInMap(link)" class="link noselect" v-text="link"></li>
+			</ul>
+		</div>
+	</div>
+	<div id="container-map">
+		<input id="urlinput" type="textinput"></input>
+		<div id="map"></div>
+
+	</div>
 	<script src="index.js"></script>
 </body>
 </html>
